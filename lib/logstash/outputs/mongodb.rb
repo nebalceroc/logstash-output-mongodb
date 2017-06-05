@@ -76,6 +76,7 @@ class LogStash::Outputs::Mongodb < LogStash::Outputs::Base
       # Our timestamp object now has a to_bson method, using it here
       # {}.merge(other) so we don't taint the event hash innards
       document = {}.merge(event.to_hash)
+      @logger.info(" d_id " + document["mongo_id"].to_s)
       if !@isodate
         # not using timestamp.to_bson
         document["@timestamp"] = event.timestamp.to_json
@@ -83,22 +84,24 @@ class LogStash::Outputs::Mongodb < LogStash::Outputs::Base
       if @generateId
         document["_id"] = BSON::ObjectId.new(nil, event.timestamp)
       end
-      if @bulk
-        @@mutex.synchronize do
-          collection = event.sprintf(@collection)
-          if(!@documents[collection])
-            @documents[collection] = []
-          end
-          @documents[collection].push(document)
-
-          if(@documents[collection].length >= @bulk_size)
-            @db[collection].insert_many(@documents[collection])
-            @documents.delete(collection)
-          end
-        end
-      else
-        @db[event.sprintf(@collection)].insert_one(document)
-      end
+      # if @bulk
+      #   @@mutex.synchronize do
+      #     collection = event.sprintf(@collection)
+      #     if(!@documents[collection])
+      #       @documents[collection] = []
+      #     end
+      #     @documents[collection].push(document)
+      #
+      #     if(@documents[collection].length >= @bulk_size)
+      #       @db[collection].insert_many(@documents[collection])
+      #       @documents.delete(collection)
+      #     end
+      #   end
+      # else
+      #@db[event.sprintf(@collection)].insert_one(document)
+      count = @db[event.sprintf(@collection)].update_one({ "mongo_id" => document["mongo_id"]},document,{:upsert => true}).matched_count
+      #@logger.info("COUNT " + count.to_s + " d_id " + document["_id"] + " event ")
+      #end
 
     rescue => e
       @logger.warn("Failed to send event to MongoDB", :event => event, :exception => e,
