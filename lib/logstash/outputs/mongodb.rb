@@ -43,12 +43,21 @@ class LogStash::Outputs::Mongodb < LogStash::Outputs::Base
   # whatever the bulk interval value (mongodb hard limit is 1000).
   config :bulk_size, :validate => :number, :default => 900, :maximum => 999, :min => 2
 
+  config :mongo_user, :validate => :string, :required => true
+
+  config :mongo_password, :validate => :string, :required => true
+
   # Mutex used to synchronize access to 'documents'
   @@mutex = Mutex.new
 
   public
   def register
     Mongo::Logger.logger = @logger
+    # client_options = {
+    #   user: @mongo_user,
+    #   password: @mongo_password
+    # }
+    # conn = Mongo::Client.new(@uri,client_options)
     conn = Mongo::Client.new(@uri)
     @db = conn.use(@database)
 
