@@ -47,6 +47,10 @@ class LogStash::Outputs::Mongodb < LogStash::Outputs::Base
 
   config :mongo_password, :validate => :string, :required => true
 
+  config :ls_stamp, :validate => :string, :default => 'ls_stamp'
+
+  config :type, :validate => :string, :default => 'type'
+
   # Mutex used to synchronize access to 'documents'
   @@mutex = Mutex.new
 
@@ -85,7 +89,10 @@ class LogStash::Outputs::Mongodb < LogStash::Outputs::Base
       # Our timestamp object now has a to_bson method, using it here
       # {}.merge(other) so we don't taint the event hash innards
       document = {}.merge(event.to_hash)
-      @logger.info(" d_id " + document["mongo_id"].to_s)
+      mongo_id = document["mongo_id"].to_s
+      store = document["fuente"].to_s
+      stamp = document[@ls_stamp].to_s
+      @logger.info("OUTPUT_PLUGIN (#{stamp} #{store}) DOCUMENT MONGO_ID #{mongo_id}")
       if !@isodate
         # not using timestamp.to_bson
         document["@timestamp"] = event.timestamp.to_json
